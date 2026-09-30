@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ぼいんクイズ｜母音列から答えを推理</title>
+<style>
+:root{--bg:#fdf8ee;--card:#fff;--tx:#2b2a33;--sub:#6d6a78;--ac:#e8590c;--ac2:#fff1e6;--ok:#2b8a3e;--ng:#c92a2a;--bd:#e6dfcf;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1b22;--card:#26252e;--tx:#f1eee6;--sub:#a5a2b0;--ac:#ff922b;--ac2:#3a2c20;--ok:#69db7c;--ng:#ff8787;--bd:#3a3945}}
+:root[data-theme="dark"]{--bg:#1c1b22;--card:#26252e;--tx:#f1eee6;--sub:#a5a2b0;--ac:#ff922b;--ac2:#3a2c20;--ok:#69db7c;--ng:#ff8787;--bd:#3a3945}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;line-height:1.6}
+main{max-width:560px;margin:0 auto;padding:16px}
+h1{font-size:28px;text-align:center;margin:20px 0 4px}
+h2{font-size:18px;margin:0 0 10px}
+.sub{color:var(--sub);text-align:center;font-size:14px;margin:0 0 18px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:12px}
+button{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:12px 16px;background:var(--ac);color:#fff;font-weight:700;width:100%;margin-top:8px}
+button.g{background:var(--ac2);color:var(--ac);border:1px solid var(--ac)}
+button:disabled{opacity:.5}
+input{font:inherit;width:100%;padding:12px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx)}
+.vow{font-size:34px;letter-spacing:.25em;text-align:center;font-weight:800;color:var(--ac);margin:6px 0}
+.meta{display:flex;justify-content:space-between;font-size:14px;color:var(--sub)}
+.hint{padding:10px 12px;border-radius:10px;background:var(--ac2);margin:8px 0;animation:in .4s}
+.hint b{color:var(--ac)}
+.hint.locked{opacity:.4;background:none;border:1px dashed var(--bd)}
+@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
+.msg{text-align:center;font-weight:700;min-height:1.6em}
+.ng{color:var(--ng)}.ok{color:var(--ok)}
+.big{font-size:42px;font-weight:800;text-align:center;margin:4px 0}
+.ans{font-size:30px;font-weight:800;text-align:center;color:var(--ok)}
+ol.rank{padding:0;margin:0;list-style:none}
+ol.rank li{display:flex;gap:10px;padding:8px 4px;border-bottom:1px solid var(--bd)}
+ol.rank .n{width:2.2em;font-weight:800;color:var(--ac)}
+ol.rank .s{margin-left:auto;font-weight:800}
+.pts{width:100%;border-collapse:collapse;font-size:14px}
+.pts td,.pts th{border-bottom:1px solid var(--bd);padding:6px;text-align:center}
+.small{font-size:13px;color:var(--sub)}
+</style></head>
+<body><main id="app"></main>
+<script>
+const RAW=[`
+カラス|からす|ああう|イルカ|頭がいい|墨汁|黒い|か|烏,鴉
+ウニ|うに|うい|イガグリ|トゲトゲ|イクラ|軍艦巻きの定番ネタ|う|雲丹
+タコ|たこ|あお|ヤモリ|吸盤でくっつく|クモ|8本足|た|蛸,章魚
+パンダ|ぱんだ|あんあ|オセロ|白と黒|万里の長城|中国の代表的なシンボル|ぱ|熊猫
+ポスト|ぽすと|おうお|消防車|赤い|ツイート|ポストと呼ばれる|ぽ|
+クジラ|くじら|ういあ|噴水|水を吹き上げる|ゾウ|大型哺乳類|く|鯨
+カサ|かさ|ああ|キノコ|形|長靴|雨具|か|傘
+ユキ|ゆき|うい|塩|白い粒|サンタクロース|冬|ゆ|雪
+ハサミ|はさみ|ああい|石|じゃんけんで使う|包丁|切る道具|は|鋏
+イチョウ|いちょう|いおう|扇子|扇の形|サンマ|秋の風物詩|い|銀杏
+スイカ|すいか|ういあ|貯金箱|意図的に割られる|ビーチボール|形や模様|す|西瓜
+ホシ|ほし|おい|街灯|夜に光る|ヒトデ|星形|ほ|星,☆`,`
+ペンギン|ぺんぎん|えんいん|サッカーボール|白と黒|ダチョウ|飛べない鳥|ぺ|
+ヒマワリ|ひまわり|いああい|花火|夏の風物詩／ミスチルの代表曲|バナナ|黄色い|ひ|向日葵
+ジテンシャ|じてんしゃ|いえんあ|ブランコ|漕ぐ|徒歩|移動手段|じ|自転車
+サボテン|さぼてん|あおえん|バラ|棘を持つ植物|ラクダ|乾燥に強い|さ|仙人掌
+カタツムリ|かたつむり|ああううい|ナルト|渦巻き模様|アジサイ|梅雨を代表するもの|か|蝸牛
+ニンジン|にんじん|いんいん|ミカン|オレンジ色|ゴボウ|根菜|に|人参
+ロウソク|ろうそく|おうおう|アイス|溶ける|ランタン|明かり|ろ|蝋燭
+カブトムシ|かぶとむし|あうおうい|ユニコーン|角がある|ゴキブリ|昆虫|か|兜虫,甲虫
+ヒコウキ|ひこうき|いおうい|ツバメ|空を飛ぶ|電車|乗り物|ひ|飛行機
+カメレオン|かめれおん|あええおん|信号|色が変わる|トカゲ|爬虫類|か|
+タンポポ|たんぽぽ|あんおお|パラシュート|風に乗って舞い降りる|レモン|黄色|た|蒲公英
+扇風機|せんぷうき|えんううい|風鈴|夏に涼をとる|ヘリコプター|羽が回転する|せ|
+靴下|くつした|うういあ|ギフトボックス|クリスマスで使う|サンダル|履くもの|く|`,`
+ハリセンボン|はりせんぼん|あいえんおん|風船|ふくらむ|ヤマアラシ|針を持つ動物|は|針千本
+トウモロコシ|とうもろこし|おうおおおい|ヒヨコ|黄色い|カラーコーン|コーンと呼ばれる|と|玉蜀黍
+シンカンセン|しんかんせん|いんあんえん|チーター|速い|フランスパン|細長い|し|新幹線
+コンペイトウ|こんぺいとう|おんえいおう|虹|カラフル|チョコレート|甘い|こ|金平糖
+ホウレンソウ|ほうれんそう|おうえんおう|レバー|鉄分豊富|ピーマン|緑|ほ|
+目覚まし時計|めざましどけい|えああいおえい|工事|大きな音|コーヒー|目が覚める|め|めざまし時計
+ショートケーキ|しょーとけーき|おーおえーい|洗車|スポンジを使う|わたがし|白くて甘い|しょ|
+スパイダーマン|すぱいだーまん|うあいあーあん|裁縫|糸を使う|アンパンマン|ヒーロー|す|
+メロンソーダ|めろんそーだ|えおんおーあ|アロエ|緑|ジンジャーエール|炭酸飲料|め|
+くりまんじゅう|くりまんじゅう|ういあんうう|羊羹|和菓子|草むしり検定|「ちいかわ」に登場|く|栗まんじゅう,栗饅頭
+ダイヤモンド|だいやもんど|あいあおんお|氷|透き通って輝く|金貨|価値の象徴|だ|ダイアモンド
+ブルーチーズ|ぶるーちーず|ううーいーう|ヨーグルト|乳製品|くさや|臭いが強烈な食べ物|ぶ|`];
+const P=RAW.map(t=>t.trim().split("\n").map(l=>{const [d,r,v,h1,e1,h2,e2,f,x]=l.split("|");return{v,h:[h1,h2],f,a:[d,r,...(x?x.split(","):[])],ans:d,e:[h1+" → "+e1,h2+" → "+e2]}}));
+const D=["★☆☆","★★☆","★★★"],CNT=[2,2,1];
+const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const pick=()=>{let r;for(let n=0;n<50;n++){r=P.flatMap((l,i)=>shuf(l).slice(0,CNT[i]).map(q=>({...q,d:D[i]})));const w=r.flatMap(q=>q.h);if(new Set(w).size===w.length)break}return r};
+const fmt=ms=>{const t=ms/1000;return Math.floor(t/60)+":"+(t%60).toFixed(1).padStart(4,"0")};
+const PT=[5,3,2];
+const TUT={v:"おう",h:["ピノキオ","ジンベエザメ"],f:"ぞ",ans:"ゾウ",e:["ピノキオ → 「鼻が長い」","ジンベエザメ → 「大きい」"]};
+const $=s=>document.querySelector(s), app=$("#app");
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const norm=s=>s.normalize("NFKC").replace(/[\s　・ー\-]/g,"").replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-96)).toLowerCase();
+let G,unsub=null,saved=false;
+const stop=()=>{if(unsub){try{unsub()}catch(e){}unsub=null}};
+
+function title(){stop();app.innerHTML=`
+<h1>ぼいんクイズ</h1><p class="sub">母音だけの暗号とヒントから、答えを推理しよう</p>
+<div class="card"><button id="go">ゲームスタート（全5問）</button>
+<button class="g" id="tu">チュートリアル</button>
+<button class="g" id="ru">ルール</button>
+<button class="g" id="rk">自己ベスト記録</button></div>`;
+$("#go").onclick=start;
+$("#tu").onclick=()=>tutorial(0);$("#ru").onclick=rules;$("#rk").onclick=()=>records(title)}
+
+function rules(){app.innerHTML=`<h1>ルール</h1><div class="card">
+<p>お題は<b>母音だけに直した言葉</b>。「りんご」なら「い・ん・お」で <b>いんお</b>（「ん」はそのまま）。この母音列とヒントから、元の言葉を当てよう。</p>
+<p><b>ヒントは共通点のある言葉</b>。例えば答えが「ゾウ」なら、ピノキオ（鼻が長い）やジンベエザメ（大きい）。共通点そのものは書かれないので、自分で考えよう。</p>
+<p>ヒント①、ヒント②は、答えと特定の共通点を持つ言葉。<br><span class="small">※ヒント①とヒント②の間に直接の共通性はない</span></p><p>ヒント③は、答えの<b>最初の文字</b>。</p><p>ヒント①は<b>少し難しめ</b>、ヒント②は<b>やさしめ</b>。①で思いつかなくても、②で絞り込もう。</p>
+<h2>解答は1問3回まで</h2>
+<table class="pts"><tr><th>回数</th><th>公開されるヒント</th><th>点</th></tr>
+<tr><td>1回目</td><td>ヒント①</td><td>5点</td></tr><tr><td>2回目</td><td>＋ヒント②</td><td>3点</td></tr><tr><td>3回目</td><td>＋ヒント③</td><td>2点</td></tr></table>
+<p class="small">間違えるか「わからない」を押すと次のヒントが出ます（どちらも解答権を1回消費）。3回外すと0点。全5問、満点は25点。文字数は問題が進むほど長くなります（2〜3文字→4〜5文字→6〜7文字）。</p><p>答えを考えていた時間の合計を<b>クリアタイム</b>として計測（解説を読む時間は含みません）。プレイ記録はこの端末に自動保存され、「自己ベスト記録」で点数順（同点はタイムが短い順）に20位まで見られます。</p><p><b>答えは、ひらがな・カタカナ・漢字のどれで入力してもOK。</b></p>
+<button id="b">もどる</button></div>`;$("#b").onclick=title}
+
+function tutorial(i){
+const t=TUT,steps=[
+`<p>これは練習問題。まずは<b>母音列</b>と<b>ヒント①</b>だけが見えます。</p><div class="vow">${t.v}</div><div class="hint"><b>ヒント①</b>　${t.h[0]}</div><p class="small">ピノキオといえば…長いのは？ ここで答えられれば <b>5点</b>！</p><p class="small">ヒント①は少し難しめ、ヒント②はやさしめになっています。</p>`,
+`<p>1回目を外すと<b>ヒント②</b>が出ます。</p><div class="vow">${t.v}</div><div class="hint"><b>ヒント①</b>　${t.h[0]}</div><div class="hint"><b>ヒント②</b>　${t.h[1]}</div><p class="small">ジンベエザメの特徴は？ ここで正解なら <b>3点</b>。</p>`,
+`<p>2回目も外すと<b>ヒント③</b>（最初の文字）が出ます。</p><div class="vow">${t.v}</div><div class="hint"><b>ヒント①</b>　${t.h[0]}</div><div class="hint"><b>ヒント②</b>　${t.h[1]}</div><div class="hint"><b>ヒント③</b>　最初の文字「${t.f}」</div><p class="small">これで正解なら <b>2点</b>。3回目も外すと0点です。</p>`,
+`<p>正解 or 解答権がなくなった時点で、答えと解説が公開されます。</p><div class="ans">${t.ans}</div>${t.e.map(x=>`<div class="hint">${x}</div>`).join("")}<p class="small">「お・う」＝ゾウ。ピノキオは鼻が長く、ジンベエザメは大きい。共通点が別方向から答えを浮かび上がらせます。</p>`];
+app.innerHTML=`<h1>チュートリアル</h1><div class="meta"><span>${i+1} / ${steps.length}</span></div><div class="card">${steps[i]}
+<button id="nx">${i<steps.length-1?"次へ":"おわり"}</button>${i>0?'<button class="g" id="pv">前へ</button>':""}<button class="g" id="ex">タイトルへ</button></div>`;
+$("#nx").onclick=()=>i<steps.length-1?tutorial(i+1):title();
+if(i>0)$("#pv").onclick=()=>tutorial(i-1);$("#ex").onclick=title}
+
+function start(){saved=false;G={Q:pick(),q:0,tries:0,score:0,pts:[],ms:0,ts:null,st:""};question()}
+
+function hintsHtml(q,n){let h=`<div class="hint"><b>ヒント①</b>　${q.h[0]}</div>`;
+h+=n>=1?`<div class="hint"><b>ヒント②</b>　${q.h[1]}</div>`:`<div class="hint locked">ヒント②（不正解で公開）</div>`;
+h+=n>=2?`<div class="hint"><b>ヒント③</b>　最初の文字「${q.f}」</div>`:`<div class="hint locked">ヒント③（さらに不正解で公開）</div>`;return h}
+
+function question(msg){const q=G.Q[G.q];if(G.ts===null)G.ts=Date.now();
+app.innerHTML=`<div class="meta"><span>第${G.q+1}問 / 5　${q.d}</span><span>スコア ${G.score}点</span></div>
+<div class="card"><div class="small" style="text-align:center">母音列（${[...q.v].length}文字）</div><div class="vow">${q.v}</div>
+${hintsHtml(q,G.tries)}
+<p class="msg ng" id="m">${msg||""}</p>
+<input id="in" placeholder="答えを入力" autocomplete="off">
+<button id="ok">解答する（残り${3-G.tries}回・正解で${PT[G.tries]}点）</button>
+<button class="g" id="dk">わからない（不正解扱いで次のヒントへ）</button></div>`;
+const wrong=m=>{G.tries++;if(G.tries>=3)finish(0);else question(m)};
+const f=()=>{const v=norm($("#in").value);if(!v)return;
+if(q.a.some(a=>norm(a)===v))finish(PT[G.tries]);else wrong("不正解…ヒントが増えたよ")};
+$("#ok").onclick=f;$("#dk").onclick=()=>wrong("わからない…ヒントが増えたよ");$("#in").onkeydown=e=>{if(e.key==="Enter")f()}}
+
+function finish(p){const q=G.Q[G.q];G.score+=p;G.pts.push(p);if(G.ts!==null){G.ms+=Date.now()-G.ts;G.ts=null}const last=G.q===4;
+app.innerHTML=`<div class="meta"><span>第${G.q+1}問 / 5　${q.d}</span><span>スコア ${G.score}点</span></div>
+<div class="card"><div class="vow">${q.v}</div>${hintsHtml(q,2)}
+<div class="big ${p?"ok":"ng"}">${p?"正解！ +"+p+"点":"残念… 0点"}</div><div class="ans">${q.ans}</div>
+<h2 style="margin-top:12px">ヒントの解説</h2>${q.e.map(x=>`<div class="hint">${x}</div>`).join("")}
+<div class="hint">ヒント③ → 最初の文字は「${q.f}」</div>
+<button id="nx">${last?"結果を見る":"次の問題へ"}</button></div>`;
+$("#nx").onclick=()=>{if(last)result();else{G.q++;G.tries=0;question()}}}
+
+const KEY="boin_rec";
+const load=()=>{try{return JSON.parse(localStorage.getItem(KEY)||"[]")}catch(e){return []}};
+const sortR=a=>a.sort((x,y)=>y.s-x.s||x.ms-y.ms||x.t-y.t);
+function result(){
+let msg="";
+if(!G.st){const r={s:G.score,ms:G.ms,t:Date.now()};G.t=r.t;const a=sortR(load().concat(r));
+const rank=a.indexOf(a.find(x=>x.t===r.t))+1;
+try{localStorage.setItem(KEY,JSON.stringify(a.slice(0,20)));G.st=rank<=20?`自己ベスト${rank}位！`:"記録は20位圏外でした"}catch(e){G.st="この環境では記録を保存できませんでした"}}
+app.innerHTML=`<h1>結果</h1><div class="card"><div class="big">${G.score} / 25点</div>
+<p class="sub">${G.pts.map((p,i)=>`第${i+1}問:${p}`).join("　")}<br>クリアタイム ${fmt(G.ms)}</p>
+<p class="msg ok">${G.st}</p>
+<button class="g" id="rk">自己ベスト記録を見る</button><button id="rt">もう一度あそぶ</button><button class="g" id="tt">タイトルへ</button></div>`;
+$("#rk").onclick=()=>records(result);$("#rt").onclick=start;$("#tt").onclick=title}
+
+function records(back){const a=sortR(load()).slice(0,20);
+app.innerHTML=`<h1>自己ベスト記録</h1><p class="sub">この端末での上位20位（同点はタイムが短い順）</p><div class="card"><ol class="rank">${a.length?a.map((x,i)=>{const d=new Date(x.t);return `<li><span class="n">${i+1}位</span><span class="small">${d.getMonth()+1}/${d.getDate()}</span><span class="s">${x.s}点　<span class="small">${fmt(x.ms)}</span></span></li>`}).join(""):"<li>まだ記録がありません</li>"}</ol>
+<button id="b">もどる</button><button class="g" id="cl">記録を消す</button></div>`;
+$("#b").onclick=back;
+let c=0;$("#cl").onclick=()=>{if(!c){c=1;$("#cl").textContent="本当に消す（もう一度押す）";return}try{localStorage.removeItem(KEY)}catch(e){}records(back)}}
+title();
+</script></body></html>
